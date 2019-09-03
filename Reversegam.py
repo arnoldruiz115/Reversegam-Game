@@ -89,9 +89,48 @@ def get_score_of_board(board):
     return {'X': x_score, 'O': o_score}
 
 
+def enter_player_tile():
+    tile = ''
+    while not (tile == 'X' or tile == 'O'):
+        print('Do you want to be X or O?')
+        tile = input().upper()
+
+        if tile == 'X':
+            return ['X', 'O']
+        else:
+            return ['O', 'X']
+
+
+def who_goes_first():
+    if random.randint(0, 1) == 0:
+        return 'computer'
+    else:
+        return 'player'
+
+
+def make_move(board, tile, x_start, y_start):
+    tiles_to_flip = is_valid_move(board, tile, x_start, y_start)
+    if not tiles_to_flip:
+        return False
+
+    board[x_start][y_start] = tile
+
+    for x, y in tiles_to_flip:
+        board[x][y] = tile
+    return True
+
+
 def get_board_copy(board):
     board_copy = get_new_board()
     for x in range(WIDTH):
         for y in range(HEIGHT):
             board_copy[x][y] = board[x][y]
     return board_copy
+
+
+def is_on_corner(x, y):
+    return (x == 0 or x == WIDTH - 1) and (y == 0 or y == HEIGHT - 1)
+
+
+def get_player_move(board, player_tile):
+
