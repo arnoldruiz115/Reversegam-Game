@@ -4,7 +4,14 @@ WIDTH = 8
 HEIGHT = 8
 
 
+def draw_horizontal_border(top: bool):
+    a, b = ' 1 2 3 4 5 6 7 8', ' ' + '+' + '-' * 8 + '+'
+    c = (a, b) if top else (b, a)
+    print(c[0], '\n', c[1])
+
+
 def draw_board(board):
+    # old
     print('  12345678')
     print(' +--------+')
     for y in range(HEIGHT):
@@ -26,11 +33,7 @@ def get_new_board():
 def is_valid_move(board, tile, x_start, y_start):
     if board[x_start][y_start] != ' ' or not is_on_board(x_start, y_start):
         return False
-
-    if tile == 'X':
-        other_tile = 'O'
-    else:
-        other_tile = 'X'
+    other_tile = 'O' if tile == 'X' else 'X'
 
     tiles_to_flip = []
 
@@ -57,7 +60,7 @@ def is_valid_move(board, tile, x_start, y_start):
 
 
 def is_on_board(x, y):
-    return 0 <= x <= (WIDTH - 1) and 0 <= y <= (HEIGHT - 1)
+    return x in range(WIDTH) and y in range(HEIGHT)
 
 
 def get_board_with_valid_moves(board, tile):
@@ -78,8 +81,7 @@ def get_valid_moves(board, tile):
 
 
 def get_score_of_board(board):
-    x_score = 0
-    o_score = 0
+    x_score = o_score = 0
     for x in range(WIDTH):
         for y in range(HEIGHT):
             if board[x][y] == 'X':
@@ -133,4 +135,111 @@ def is_on_corner(x, y):
 
 
 def get_player_move(board, player_tile):
+    digits = '1 2 3 4 5 6 7 8'.split()
+    while True:
+        print('Enter your move, "quit" to end the game, or "hints" to toggle hints.')
+        move = input().lower()
+        if move == 'quit' or move == 'hints':
+            return move
+        if len(move) == 2 and move[0] in digits and move[1] in digits:
+            x = int(move[0]) - 1
+            y = int(move[1]) - 1
+            if not is_valid_move(board, player_tile, x, y):
+                continue
+            else:
+                break
+        else:
+            print('That is not a valid move. Enter the column (1-8) and then thr row (1-8).')
+            print('For example, 81 will move on the top-right corner.')
+    return [x, y]
 
+
+def get_computer_move(board, computer_tile):
+    possible_moves = get_valid_moves(board, computer_tile)
+    random.shuffle(possible_moves)
+    for x, y in possible_moves:
+        if is_on_corner(x, y):
+            return [x, y]
+    best_score = -1
+    best_move = []
+    for x, y in possible_moves:
+        board_copy = get_board_copy(board)
+        make_move(board_copy, computer_tile, x, y)
+        score = get_score_of_board(board_copy)[computer_tile]
+        if score > best_score:
+            best_move = [x, y]
+            best_score = score
+    return best_move
+
+
+def print_score(board, player_tile, computer_tile):
+    scores = get_score_of_board(board)
+    print('You: %s points. Computer: %s points.' % (scores[player_tile], scores[computer_tile]))
+
+
+def play_game(player_tile, computer_tile):
+    show_hints = False
+    turn = who_goes_first()
+    print('The ' + turn + ' will go first.')
+
+    board = get_new_board()
+    board[3][3] = 'X'
+    board[3][4] = 'O'
+    board[4][3] = 'O'
+    board[4][4] = 'X'
+
+    while True:
+        player_valid_moves = get_valid_moves(board, player_tile)
+        computer_valid_moves = get_valid_moves(board, computer_tile)
+        if player_valid_moves == [] and computer_valid_moves == []:
+            return board
+        elif turn == 'player':
+            if not player_valid_moves:
+                if show_hints:
+                    valid_moves_board = get_board_with_valid_moves(board, player_tile)
+                    draw_board(valid_moves_board)
+                else:
+                    draw_board(board)
+                print_score(board, player_tile, computer_tile)
+
+                move = get_player_move(board, player_tile)
+                if move == 'quit':
+                    print('Thanks for playing!')
+                    sys.exit()
+                elif move == 'hints':
+                    show_hints = not show_hints
+                    continue
+                else:
+                    make_move(board, player_tile, move[0], move[1])
+            turn = 'computer'
+        elif turn == 'computer':
+            if not computer_valid_moves:
+                draw_board(board)
+                print_score(board, player_tile, computer_tile)
+                input('Press Enter to see the computer\'s move')
+                move = get_computer_move(board, computer_tile)
+                make_move(board, computer_tile, move[0], move[1])
+            turn = 'player'
+
+
+def play():
+    print('Welcome to Reversegam!')
+    player_tile, computer_tile = enter_player_tile()
+    while True:
+        final_board = play_game(player_tile, computer_tile)
+        draw_board(final_board)
+        scores = get_score_of_board(final_board)
+        print('X scored %s points. O scored %s points.' % (scores['X'], scores['O']))
+        if scores[player_tile] > scores[computer_tile]:
+            print('You beat the computer by %s points! Congratulations!'
+                  % (scores[player_tile] - scores[computer_tile]))
+        elif scores[player_tile] < scores[computer_tile]:
+            print('You lost. The computer beat you by %s points.' % (scores[computer_tile] - scores[player_tile]))
+        else:
+            print('The game was a tie!')
+        print('Do you want to play again? (yes or no)')
+        if not input().lower().startswith('y'):
+            break
+
+
+play()
